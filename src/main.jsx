@@ -5,6 +5,7 @@ import App from "./App";
 import { BrowserRouter } from "react-router-dom";
 import { worker } from "@uidotdev/react-query-api";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 
 const queryClient = new QueryClient()
 
@@ -24,6 +25,7 @@ new Promise((res) => setTimeout(res, 100))
               <App />
             </div>
           </BrowserRouter>
+          <ReactQueryDevtools />
         </QueryClientProvider>
       </React.StrictMode>,
       document.getElementById("root")
