@@ -1,9 +1,12 @@
+//  Component has error handling
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import fetchWithError from "../helpers/fetchWithError";
 import { IssueItem } from "./IssueItem";
 
 export default function IssuesList({ labels, status }) {
   const [searchValue, setSearchValue] = useState('')
+
   const issuesQuery = useQuery(
     // add labels as object to show that it's an option or a filter
     ['issues', { labels, status }],
@@ -11,7 +14,7 @@ export default function IssuesList({ labels, status }) {
       // we check if there's a status, i.e. string is not empty string
       const statusString = status ? `&status=${status}` : ''
       const labelsString = labels.map(label => `labels[]=${label}`).join('&')
-      return fetch(`/api/issues?${labelsString}${statusString}`).then(res => res.json())
+      return fetchWithError(`/api/issues?${labelsString}${statusString}`)
     },
     { staleTime: 1000 * 60 }
   )
@@ -47,54 +50,56 @@ export default function IssuesList({ labels, status }) {
       <h2>Issues List</h2>
       {issuesQuery.isLoading
         ? <p>Loading...</p>
-        : searchQuery.fetchStatus === 'idle' && searchQuery.isLoading // if condition is met, there's no search active. Display all issues
-          ? (
-            <ul className="issues-list">
-              {issuesQuery.data.map(issue => (
-                <IssueItem
-                  key={issue.id}
-                  title={issue.title}
-                  number={issue.number}
-                  assignee={issue.assignee}
-                  commentCount={issue.comments.length}
-                  createdBy={issue.createdBy}
-                  // we could also pass all props by spreading... 
-                  // {...issue}
-                  createdDate={issue.createdDate}
-                  labels={issue.labels}
-                  status={issue.status}
-                />
-              ))}
-            </ul>
-          )
-          : ( // this section means that there's an active search
-            <>
-              <h2>Search Results</h2>
-              {searchQuery.isLoading
-                ? <p>Loading...</p>
-                : <>
-                  <p>{searchQuery.data.count} Results</p>
-                  <ul className="issues-list">
-                    {searchQuery.data.items.map(issue => (
-                      <IssueItem
-                        key={issue.id}
-                        title={issue.title}
-                        number={issue.number}
-                        assignee={issue.assignee}
-                        commentCount={issue.comments.length}
-                        createdBy={issue.createdBy}
-                        // we could also pass all props by spreading... 
-                        // {...issue}
-                        createdDate={issue.createdDate}
-                        labels={issue.labels}
-                        status={issue.status}
-                      />
-                    ))}
-                  </ul>
-                </>
-              }
-            </>
-          )
+        : issuesQuery.isError
+          ? <p>{issuesQuery.error.message}</p>
+          : searchQuery.fetchStatus === 'idle' && searchQuery.isLoading // if condition is met, there's no search active. Display all issues
+            ? (
+              <ul className="issues-list">
+                {issuesQuery.data.map(issue => (
+                  <IssueItem
+                    key={issue.id}
+                    title={issue.title}
+                    number={issue.number}
+                    assignee={issue.assignee}
+                    commentCount={issue.comments.length}
+                    createdBy={issue.createdBy}
+                    // we could also pass all props by spreading... 
+                    // {...issue}
+                    createdDate={issue.createdDate}
+                    labels={issue.labels}
+                    status={issue.status}
+                  />
+                ))}
+              </ul>
+            )
+            : ( // this section means that there's an active search
+              <>
+                <h2>Search Results</h2>
+                {searchQuery.isLoading
+                  ? <p>Loading...</p>
+                  : <>
+                    <p>{searchQuery.data.count} Results</p>
+                    <ul className="issues-list">
+                      {searchQuery.data.items.map(issue => (
+                        <IssueItem
+                          key={issue.id}
+                          title={issue.title}
+                          number={issue.number}
+                          assignee={issue.assignee}
+                          commentCount={issue.comments.length}
+                          createdBy={issue.createdBy}
+                          // we could also pass all props by spreading... 
+                          // {...issue}
+                          createdDate={issue.createdDate}
+                          labels={issue.labels}
+                          status={issue.status}
+                        />
+                      ))}
+                    </ul>
+                  </>
+                }
+              </>
+            )
       }
     </div>
   );
