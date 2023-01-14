@@ -10,17 +10,19 @@ export default function IssuesList({ labels, status }) {
   const issuesQuery = useQuery(
     // add labels as object to show that it's an option or a filter
     ['issues', { labels, status }],
-    () => {
+    ({ signal }) => {
       // we check if there's a status, i.e. string is not empty string
       const statusString = status ? `&status=${status}` : ''
       const labelsString = labels.map(label => `labels[]=${label}`).join('&')
-      return fetchWithError(`/api/issues?${labelsString}${statusString}`)
+      return fetchWithError(`/api/issues?${labelsString}${statusString}`, { signal })
     }
   )
 
-  const searchQuery = useQuery(['issues', 'search', searchValue], () => {
-    return fetch(`/api/search/issues?q=${searchValue}`).then(res => res.json())
-  },
+  const searchQuery = useQuery(['issues', 'search', searchValue],
+    // signal will allow us to cancel a request if the user submits a new search term, or if the users goes to another page.
+    ({ signal }) => {
+      return fetch(`/api/search/issues?q=${searchValue}`, { signal }).then(res => res.json())
+    },
     { enabled: searchValue.length > 0 }
   )
 
