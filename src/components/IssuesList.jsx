@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import fetchWithError from "../helpers/fetchWithError";
 import { IssueItem } from "./IssueItem";
+import Loader from "./Loader";
 
 export default function IssuesList({ labels, status }) {
   const [searchValue, setSearchValue] = useState('')
@@ -47,8 +48,8 @@ export default function IssuesList({ labels, status }) {
           }}
         />
       </form>
-
-      <h2>Issues List</h2>
+      {/* isFetching will be true anytime data is being retrieved, except on the first load */}
+      <h2>Issues List {issuesQuery.isFetching ? <Loader /> : null}</h2>
       {issuesQuery.isLoading
         ? <p>Loading...</p>
         : issuesQuery.isError
