@@ -1,15 +1,29 @@
+// we use this component to prefetch data for comments when the item is hovered over
 import { Link } from "react-router-dom";
 import { GoIssueOpened, GoIssueClosed, GoComment } from 'react-icons/go';
 import { relativeDate } from "../helpers/relativeDate";
 import { useUserData } from "../helpers/useUserData";
 import { Label } from "./Label";
+import { useQueryClient } from "@tanstack/react-query";
+import fetchWithError from "../helpers/fetchWithError";
 
 export function IssueItem({ title, number, assignee, commentCount, createdBy, createdDate, labels, status, }) {
+  const queryClient = useQueryClient()
   const assigneeUser = useUserData(assignee)
   const createdByUser = useUserData(createdBy)
 
   return (
-    <li>
+    <li onMouseEnter={() => {
+      queryClient.prefetchQuery(
+        ['issues', number.toString()],
+        () => fetchWithError(`/api/issues/${number}`)
+      )
+      queryClient.prefetchQuery(
+        ['issues', number.toString(), 'comments'],
+        () => fetchWithError(`/api/issues/${number}/comments`)
+      )
+      // ['issues', issueNumber, 'comments']
+    }}>
       {/* Icon section */}
       <div>
         {status === 'done' || status === 'cancel' ?

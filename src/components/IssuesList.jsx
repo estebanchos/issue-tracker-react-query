@@ -1,5 +1,5 @@
 //  Component has error handling
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import fetchWithError from "../helpers/fetchWithError";
 import { IssueItem } from "./IssueItem";
@@ -7,15 +7,22 @@ import Loader from "./Loader";
 
 export default function IssuesList({ labels, status }) {
   const [searchValue, setSearchValue] = useState('')
+  const queryClient = useQueryClient()
 
   const issuesQuery = useQuery(
     // add labels as object to show that it's an option or a filter
     ['issues', { labels, status }],
-    ({ signal }) => {
+    async ({ signal }) => { // we use the data here to prepopulate our issuesDetails query
       // we check if there's a status, i.e. string is not empty string
       const statusString = status ? `&status=${status}` : ''
       const labelsString = labels.map(label => `labels[]=${label}`).join('&')
-      return fetchWithError(`/api/issues?${labelsString}${statusString}`, { signal })
+      const results = await fetchWithError(`/api/issues?${labelsString}${statusString}`, { signal })
+
+      results.forEach(issue => {
+        queryClient.setQueryData(['issues', String(issue.number)], issue) // we transform issue.number into string because it comes back as number
+      })
+
+      return results
     }
   )
 
@@ -90,11 +97,11 @@ export default function IssuesList({ labels, status }) {
                           assignee={issue.assignee}
                           commentCount={issue.comments.length}
                           createdBy={issue.createdBy}
-                          // we could also pass all props by spreading... 
-                          // {...issue}
                           createdDate={issue.createdDate}
                           labels={issue.labels}
                           status={issue.status}
+                          // we could also pass all props by spreading... 
+                          // {...issue}
                         />
                       ))}
                     </ul>
