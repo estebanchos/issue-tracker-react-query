@@ -5,32 +5,36 @@ import fetchWithError from "../helpers/fetchWithError";
 import { IssueItem } from "./IssueItem";
 import Loader from "./Loader";
 
-export default function IssuesList({ labels, status }) {
+export default function IssuesList({ labels, status, pageNum, setPageNum }) {
   const [searchValue, setSearchValue] = useState('')
   const queryClient = useQueryClient()
 
   const issuesQuery = useQuery(
     // add labels as object to show that it's an option or a filter
-    ['issues', { labels, status }],
+    ['issues', { labels, status, pageNum }],
     async ({ signal }) => { // we use the data here to prepopulate our issuesDetails query
       // we check if there's a status, i.e. string is not empty string
       const statusString = status ? `&status=${status}` : ''
       const labelsString = labels.map(label => `labels[]=${label}`).join('&')
-      const results = await fetchWithError(`/api/issues?${labelsString}${statusString}`, { signal })
+      // we will conditionally create a pagination string
+      const paginationString = pageNum ? `&page=${pageNum}` : ''
+
+      const results = await fetchWithError(`/api/issues?${labelsString}${statusString}${paginationString}`, { signal })
 
       results.forEach(issue => {
         queryClient.setQueryData(['issues', String(issue.number)], issue) // we transform issue.number into string because it comes back as number
       })
 
       return results
-    }
+    },
+    // we want to keep the previous data so that we don't have to wait for the new data to come back before we can display the previous data
+    { keepPreviousData: true }
   )
 
-  const searchQuery = useQuery(['issues', 'search', searchValue],
+  const searchQuery = useQuery(
+    ['issues', 'search', searchValue],
     // signal will allow us to cancel a request if the user submits a new search term, or if the users goes to another page.
-    ({ signal }) => {
-      return fetch(`/api/search/issues?q=${searchValue}`, { signal }).then(res => res.json())
-    },
+    ({ signal }) => fetch(`/api/search/issues?q=${searchValue}`, { signal }).then(res => res.json()),
     { enabled: searchValue.length > 0 }
   )
 
@@ -63,23 +67,42 @@ export default function IssuesList({ labels, status }) {
           ? <p>{issuesQuery.error.message}</p>
           : searchQuery.fetchStatus === 'idle' && searchQuery.isLoading // if condition is met, there's no search active. Display all issues
             ? (
-              <ul className="issues-list">
-                {issuesQuery.data.map(issue => (
-                  <IssueItem
-                    key={issue.id}
-                    title={issue.title}
-                    number={issue.number}
-                    assignee={issue.assignee}
-                    commentCount={issue.comments.length}
-                    createdBy={issue.createdBy}
-                    // we could also pass all props by spreading... 
-                    // {...issue}
-                    createdDate={issue.createdDate}
-                    labels={issue.labels}
-                    status={issue.status}
-                  />
-                ))}
-              </ul>
+              <>
+                <ul className="issues-list">
+                  {issuesQuery.data.map(issue => (
+                    <IssueItem
+                      key={issue.id}
+                      title={issue.title}
+                      number={issue.number}
+                      assignee={issue.assignee}
+                      commentCount={issue.comments.length}
+                      createdBy={issue.createdBy}
+                      // we could also pass all props by spreading... 
+                      // {...issue}
+                      createdDate={issue.createdDate}
+                      labels={issue.labels}
+                      status={issue.status}
+                    />
+                  ))}
+                </ul>
+                <div className="pagination">
+                  <button
+                    onClick={() => {
+                      if (pageNum - 1 > 0) setPageNum(pageNum - 1)
+                    }}
+                    disabled={pageNum === 1}
+                  >Previous</button>
+                  <p>Page {pageNum} {issuesQuery.isFetching ? '...' : ''}</p>
+                  <button
+                    onClick={() => {
+                      if (issuesQuery.data?.length !== 0 && !issuesQuery.isPreviousData) setPageNum(pageNum + 1)
+                    }}
+                    // if we are using previous data we don't want to enable the next button
+                    disabled={issuesQuery.data?.length === 0 || issuesQuery.isPreviousData}
+                  >Next</button>
+                </div>
+
+              </>
             )
             : ( // this section means that there's an active search
               <>
@@ -100,8 +123,8 @@ export default function IssuesList({ labels, status }) {
                           createdDate={issue.createdDate}
                           labels={issue.labels}
                           status={issue.status}
-                          // we could also pass all props by spreading... 
-                          // {...issue}
+                        // we could also pass all props by spreading... 
+                        // {...issue}
                         />
                       ))}
                     </ul>

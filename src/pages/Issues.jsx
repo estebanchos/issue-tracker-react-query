@@ -6,6 +6,7 @@ import { StatusSelect } from "../components/StatusSelect";
 export default function Issues() {
   const [labels, setLabels] = useState([])
   const [status, setStatus] = useState('')
+  const [pageNum, setPageNum] = useState(1)
 
   return (
     <div>
@@ -15,24 +16,34 @@ export default function Issues() {
           <IssuesList
             labels={labels}
             status={status}
+            pageNum={pageNum}
+            setPageNum={setPageNum}
           />
         </section>
         <aside>
           <LabelList
             selected={labels}
-            toggle={(label) =>
+            toggle={(label) => {
               setLabels(currentLabels => currentLabels.includes(label)
                 ? currentLabels.filter(currentLabel => currentLabel !== label)
-                : currentLabels.concat(label))}
+                : currentLabels.concat(label))
+              // when we change our labels, we want to reset the page number to 1
+              setPageNum(1)
+            }
+            }
           />
           <h3>Status</h3>
           <StatusSelect
             value={status}
-            onChange={(e) => setStatus(e.target.value)}
+            onChange={(e) => {
+              setStatus(e.target.value)
+              // when we change our status, we want to reset the page number to 1
+              setPageNum(1)
+            }}
           />
           {/* hr element adds a divider line */}
           <hr />
-           <Link className="button" to='/add'>Add Issue</Link>
+          <Link className="button" to='/add'>Add Issue</Link>
         </aside>
       </main>
     </div>
